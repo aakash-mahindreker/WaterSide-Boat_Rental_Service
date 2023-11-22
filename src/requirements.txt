@@ -1,7 +1,7 @@
 Flask>=1.1.2
 pymongo>=3.11.4
 python-dotenv>=0.17.0
-stripe>=7.88.0
+stripe>=7.0.0
 beautifulsoup4>=4.10.0
 os>=1.2.3
 urllib3>=1.26.7
