@@ -1,4 +1,4 @@
---upgrade pip
+/opt/render/project/src/.venv/bin/python -m pip install --upgrade pip
 python >=3.10.0
 Flask>=1.1.2
 pymongo>=3.11.4
