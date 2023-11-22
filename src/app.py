@@ -209,7 +209,10 @@ def create_boat():
             #img_file.save(filepath:=os.path.join(app.config['UPLOAD_FOLDER'], filename))
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             img_file.save(filepath)
-            os.rename(filepath, os.path.join(app.config['UPLOAD_FOLDER'], new_filename:=gen_img_name(filepath)))
+            new_filename = gen_img_name(filepath)
+            new_filepath = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
+            os.rename(filepath, new_filepath)
+            #os.rename(filepath, os.path.join(app.config['UPLOAD_FOLDER'], new_filename:=gen_img_name(filepath)))
             try:
                 boat_name = request.form['name']
                 boat_type = request.form['type']
@@ -218,7 +221,7 @@ def create_boat():
                     boat_price = float(request.form['price'])
                 except:
                     flash(f'Invalid Price. Please check!', 'error')
-                    return redirect(f'/owner/boats/edit/{str(_id)}')
+                    return redirect(f'/owner/boats/create')
                 boat_availability = request.form['availability']
                 _ = boats_collection.insert_one(dict(owner_id=ObjectId(session['user_id']),
                                         image_url=os.path.join(os.path.split(app.config['UPLOAD_FOLDER'])[-1], new_filename),
@@ -245,77 +248,75 @@ def edit_boat_document(_id):
         flash('Access restricted! Please login to continue...', 'warning')
         return redirect('/owner/login')
     
-        if request.method=='GET':
-            boat_document = boats_collection.find_one({"_id": ObjectId(_id)})
-            return render_template('owner/edit.html', str=str, boat=boat_document)
-        elif request.method=='POST':
+    if request.method=='GET':
+        boat_document = boats_collection.find_one({"_id": ObjectId(_id)})
+        return render_template('owner/edit.html', str=str, boat=boat_document)
+    elif request.method=='POST':
+        try:
+            # Get the details from <form>
+            boat_name = request.form['name']
+            boat_type = request.form['type']
+            boat_location = request.form['location']
             try:
-                # Get the details from <form>
-                boat_name = request.form['name']
-                boat_type = request.form['type']
-                boat_location = request.form['location']
-                try:
-                    boat_price = float(request.form['price'])
-                except:
-                    flash(f'Invalid Price. Please check!', 'error')
-                    return redirect(f'/owner/boats/edit/{_id}')
-                boat_availability = request.form['availability']
-                # Update in <boats_collection>
-                filter_map = {'_id': ObjectId(_id)}
-                update = {"$set": dict(name=boat_name,
-                                        type=boat_type,
-                                        location=boat_location,
-                                        price=boat_price,
-                                        availability=boat_availability)}
-
-                result = boats_collection.update_one(filter_map, update)
-                flash(f'Boat [{_id[-5:]}] details updated!', 'success')
-                return redirect('/owner/dashboard')
+                boat_price = float(request.form['price'])
             except:
-                flash(f'Boat [{_id[-5:]}] details not updated!', 'error')
-                return redirect('/owner/dashboard')
-
-        else:
-            return render_template('405.html')
-        
+                flash(f'Invalid Price. Please check!', 'error')
+                return redirect(f'/owner/boats/edit/{_id}')
+            boat_availability = request.form['availability']
+            # Update in <boats_collection>
+            filter_map = {'_id': ObjectId(_id)}
+            update = {"$set": dict(name=boat_name,
+                                    type=boat_type,
+                                    location=boat_location,
+                                    price=boat_price,
+                                    availability=boat_availability)}
+            result = boats_collection.update_one(filter_map, update)
+            flash(f'Boat [{_id[-5:]}] details updated!', 'success')
+            return redirect('/owner/dashboard')
+        except:
+            flash(f'Boat [{_id[-5:]}] details not updated!', 'error')
+            return redirect('/owner/dashboard')
+    else:
+        return render_template('405.html')
+    
 @app.route('/<user>/details', methods=['GET', 'POST'])
 def edit_account_document(user):
     if 'email' not in session or 'user_type' not in session or 'user_id' not in session:
         flash('Access restricted! Please login to continue...', 'warning')
         return redirect(f'/{user}/login')
     
-        if request.method=='GET':
-            user_creds = users_collection.find_one({'email': session['email']})
-            return render_template(f'{user}/details.html', str=str, user=user_creds)
-        elif request.method=='POST':
-            f_name = request.form['fname']
-            l_name = request.form['lname']
-            email = str(session['email']).lower()
-            password = request.form['password']
-            confirm_password = request.form['confirm-password']
-            user_creds = users_collection.find_one({'email': email})
-            if user_creds:
-                if user_creds['user_type'] == user:
-                    if confirm_password == password and check_password_hash(user_creds['password'], password) and user_creds['email'] == email:
-                        try:
-                            # Update in <users_collection>
-                            filter_map = {'email': user_creds['email']}
-                            update = {"$set": dict(fname=f_name,
-                                                    lname=l_name)}
-                            result = users_collection.update_one(filter_map, update)
-                            flash(f'Account details updated!', 'success')
-                            return redirect(f'/{user}/dashboard')
-                        except:
-                            flash(f'{user_creds["email"]} Unable to update account details! Please try again later...', 'error')
-                            return redirect(f'/{user}/dashboard')
-                    else:
-                        flash(f'Unable to update account details! Email or passwords do not match', 'warning')
+    if request.method=='GET':
+        user_creds = users_collection.find_one({'email': session['email']})
+        return render_template(f'{user}/details.html', str=str, user=user_creds)
+    elif request.method=='POST':
+        f_name = request.form['fname']
+        l_name = request.form['lname']
+        email = str(session['email']).lower()
+        password = request.form['password']
+        confirm_password = request.form['confirm-password']
+        user_creds = users_collection.find_one({'email': email})
+        if user_creds:
+            if user_creds['user_type'] == user:
+                if confirm_password == password and check_password_hash(user_creds['password'], password) and user_creds['email'] == email:
+                    try:
+                        # Update in <users_collection>
+                        filter_map = {'email': user_creds['email']}
+                        update = {"$set": dict(fname=f_name,
+                                                lname=l_name)}
+                        result = users_collection.update_one(filter_map, update)
+                        flash(f'Account details updated!', 'success')
                         return redirect(f'/{user}/dashboard')
-            flash(f'Unable to update account details! Passwords do not match', 'error')
-            return redirect(f'/{user}/dashboard')
-        else:
-            return render_template('405.html')
-
+                    except:
+                        flash(f'{user_creds["email"]} Unable to update account details! Please try again later...', 'error')
+                        return redirect(f'/{user}/dashboard')
+                else:
+                    flash(f'Unable to update account details! Email or passwords do not match', 'warning')
+                    return redirect(f'/{user}/dashboard')
+        flash(f'Unable to update account details! Passwords do not match', 'error')
+        return redirect(f'/{user}/dashboard')
+    else:
+        return render_template('405.html')
+    
 @app.route('/owner/boats/delete/<_id>', methods=['GET', 'POST'])
 def delete_boat_document(_id):
     try:
