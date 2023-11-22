@@ -206,7 +206,9 @@ def create_boat():
         try:
             img_file = request.files['image']
             filename = secure_filename(img_file.filename)
-            img_file.save(filepath:=os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            #img_file.save(filepath:=os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            img_file.save(filepath)
             os.rename(filepath, os.path.join(app.config['UPLOAD_FOLDER'], new_filename:=gen_img_name(filepath)))
             try:
                 boat_name = request.form['name']
