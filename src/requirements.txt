@@ -4,5 +4,3 @@ python-dotenv>=0.17.0
 stripe>=7.0.0
 urllib3>=1.26.7
 cryptography>=3.4.7
-smtplib>=3.10.0
-email>=0.0.49
