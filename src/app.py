@@ -80,10 +80,9 @@ def user_login(user):
     if user not in users:
         return render_template('404.html')
 
-    match request.method:
-        case 'GET':
+    if request.method=='GET':
             return render_template(f'{user}/login.html')
-        case 'POST':
+    elif request.method=='POST':
             email = request.form['email'].lower()
             password = request.form['password']
             # Retrieve the document with <email> id
@@ -107,77 +106,77 @@ def user_login(user):
                     return redirect(f'/{user}/login')
             flash(f"Account with [{email}] doesn't exist! Please register...", 'error')
             return redirect(f'/{user}/register')
-        case _:
-            return render_template('405.html')
+    else:
+        return render_template('405.html')
 
 @app.route('/<user>/resetpassword', methods=['GET', 'POST'])
 def pass_reset(user):
     if user not in users:
         return render_template('404.html')
-    match request.method:
-        case 'GET':
-            return render_template(f'{user}/reset.html')
-        case 'POST':
-            email = request.form['email'].lower()
-            user_creds = users_collection.find_one({'email': email})
-            if user_creds:
-                if user_creds['user_type'] == user:
-                    key = os.getenv("SECRET_DE2EN_KEY")
-                    _email(email,[user_creds, whatcrypt(key, user_creds['enpass'], "decrypt")])
-                    flash(f'Your credentials are sent to your email.', 'success')
-                    return redirect(f'/{user}/resetpassword')
-            else: # no account registered with <user_creds> in <users_collection>
-                flash(f"Email is not registered with us", 'error')
+   
+    if request.method=='GET':
+        return render_template(f'{user}/reset.html')
+    elif request.method=='POST':
+        email = request.form['email'].lower()
+        user_creds = users_collection.find_one({'email': email})
+        if user_creds:
+            if user_creds['user_type'] == user:
+                key = os.getenv("SECRET_DE2EN_KEY")
+                _email(email,[user_creds, whatcrypt(key, user_creds['enpass'], "decrypt")])
+                flash(f'Your credentials are sent to your email.', 'success')
                 return redirect(f'/{user}/resetpassword')
-            flash(f"Email is not registered as {user}", 'error')
+        else: # no account registered with <user_creds> in <users_collection>
+            flash(f"Email is not registered with us", 'error')
             return redirect(f'/{user}/resetpassword')
-        case _:
-            return render_template('405.html')
+        flash(f"Email is not registered as {user}", 'error')
+        return redirect(f'/{user}/resetpassword')
+    else:
+        return render_template('405.html')
 
 @app.route('/<user>/register', methods=['GET', 'POST'])
 def user_register(user):
     key = os.getenv("SECRET_DE2EN_KEY")
     if user not in users:
         return render_template('404.html')
-    match request.method:
-        case 'GET':
-            return render_template(f'{user}/register.html')
-        case 'POST':
-            fname = request.form['fname']
-            lname = request.form['lname']
-            email = request.form['email'].lower()
-            password = request.form['password']
-            _ = request.form['confirm-password']
-            try:
-                import mcheck
-                required = f"The email address {email} is valid."
-                value = mcheck.check_email_exists(email)
-                if value==required:
-                    try:
-                        user_cred = len(users_collection.find_one({'email': email}))
-                        if user_cred > 0:
-                        # Register/save user credentials to `users` collection
-                            flash(f'Email address is already registered.', 'info')
-                            return redirect(f'/{user}/register')
-                    except:
-                        _ = users_collection.insert_one(dict(fname=fname,
-                                                            lname=lname,
-                                                            email=email,
-                                                            password=generate_password_hash(password, method='pbkdf2:sha256'),
-                                                            enpass=whatcrypt(key, password, "encrypt"),
-                                                            user_type=user))
-                        _email(to=email,what=f'{user}-register')
-                        flash(f'Hello "{fname} {lname}" {chr(0x1F44B)} You have registered successfully. Now, please login...', 'success')
-                        return redirect(f'/{user}/login')
-                else:
-                    flash(f"Error: Email doesn't exist. Please enter a valid email", 'error')
-                    return render_template(f'{user}/register.html')
-            except Exception as e:
-                flash(f'{e}', 'error')
+    
+    if request.method=='GET':
+        return render_template(f'{user}/register.html')
+    elif request.method=='POST':
+        fname = request.form['fname']
+        lname = request.form['lname']
+        email = request.form['email'].lower()
+        password = request.form['password']
+        _ = request.form['confirm-password']
+        try:
+            import mcheck
+            required = f"The email address {email} is valid."
+            value = mcheck.check_email_exists(email)
+            if value==required:
+                try:
+                    user_cred = len(users_collection.find_one({'email': email}))
+                    if user_cred > 0:
+                    # Register/save user credentials to `users` collection
+                        flash(f'Email address is already registered.', 'info')
+                        return redirect(f'/{user}/register')
+                except:
+                    _ = users_collection.insert_one(dict(fname=fname,
+                                                        lname=lname,
+                                                        email=email,
+                                                        password=generate_password_hash(password, method='pbkdf2:sha256'),
+                                                        enpass=whatcrypt(key, password, "encrypt"),
+                                                        user_type=user))
+                    _email(to=email,what=f'{user}-register')
+                    flash(f'Hello "{fname} {lname}" {chr(0x1F44B)} You have registered successfully. Now, please login...', 'success')
+                    return redirect(f'/{user}/login')
+            else:
+                flash(f"Error: Email doesn't exist. Please enter a valid email", 'error')
                 return render_template(f'{user}/register.html')
-        case _:
-            return render_template('405.html')
-        
+        except Exception as e:
+            flash(f'{e}', 'error')
+            return render_template(f'{user}/register.html')
+    else:
+        return render_template('405.html')
+    
 @app.route('/<user>/dashboard', methods=['GET']) # Only accepts redirects from login
 def user_dashboard(user):
     if 'email' not in session or 'user_type' not in session or 'user_id' not in session:
@@ -186,13 +185,13 @@ def user_dashboard(user):
     if user not in users:
         return render_template('404.html')
     boat_documents = list()
-    match user:
-        case 'owner':
-            boat_documents = boats_collection.find({"owner_id": ObjectId(session['user_id'])})
-            user_documents = users_collection.find_one({"_id": ObjectId(session['user_id'])})
-        case 'customer':
-            user_documents = users_collection.find_one({"_id": ObjectId(session['user_id'])})
-            boat_documents = boats_collection.find()
+    
+    if user== 'owner':
+        boat_documents = boats_collection.find({"owner_id": ObjectId(session['user_id'])})
+        user_documents = users_collection.find_one({"_id": ObjectId(session['user_id'])})
+    elif user== 'customer':
+        user_documents = users_collection.find_one({"_id": ObjectId(session['user_id'])})
+        boat_documents = boats_collection.find()
     return render_template(f'{user}/dashboard.html', str=str, users=user_documents ,boats=boat_documents)
 
 @app.route('/owner/boats/create', methods=['GET', 'POST'])
@@ -201,54 +200,53 @@ def create_boat():
         flash('Access restricted! Please login to continue...', 'warning')
         return redirect('/owner/login')
 
-    match request.method:
-        case 'GET':
-            return render_template('owner/create.html')
-        case 'POST':
+    if request.method=='GET':
+        return render_template('owner/create.html')
+    elif request.method=='POST':
+        try:
+            img_file = request.files['image']
+            filename = secure_filename(img_file.filename)
+            img_file.save(filepath:=os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            os.rename(filepath, os.path.join(app.config['UPLOAD_FOLDER'], new_filename:=gen_img_name(filepath)))
             try:
-                img_file = request.files['image']
-                filename = secure_filename(img_file.filename)
-                img_file.save(filepath:=os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                os.rename(filepath, os.path.join(app.config['UPLOAD_FOLDER'], new_filename:=gen_img_name(filepath)))
+                boat_name = request.form['name']
+                boat_type = request.form['type']
+                boat_location = request.form['location']
                 try:
-                    boat_name = request.form['name']
-                    boat_type = request.form['type']
-                    boat_location = request.form['location']
-                    try:
-                        boat_price = float(request.form['price'])
-                    except:
-                        flash(f'Invalid Price. Please check!', 'error')
-                        return redirect(f'/owner/boats/edit/{str(_id)}')
-                    boat_availability = request.form['availability']
-                    _ = boats_collection.insert_one(dict(owner_id=ObjectId(session['user_id']),
-                                            image_url=os.path.join(os.path.split(app.config['UPLOAD_FOLDER'])[-1], new_filename),
-                                            name=boat_name,
-                                            type=boat_type,
-                                            location=boat_location,
-                                            price=boat_price,
-                                            availability=boat_availability))
+                    boat_price = float(request.form['price'])
                 except:
-                    flash('Unable to add new boat! Please try again later...', 'error')
-                    return redirect('/owner/dashboard')
-            except Exception as ex:
-                flash(f'{ex}', 'error')
-                flash('Unable to upload image! Please try again later...', 'error')
+                    flash(f'Invalid Price. Please check!', 'error')
+                    return redirect(f'/owner/boats/edit/{str(_id)}')
+                boat_availability = request.form['availability']
+                _ = boats_collection.insert_one(dict(owner_id=ObjectId(session['user_id']),
+                                        image_url=os.path.join(os.path.split(app.config['UPLOAD_FOLDER'])[-1], new_filename),
+                                        name=boat_name,
+                                        type=boat_type,
+                                        location=boat_location,
+                                        price=boat_price,
+                                        availability=boat_availability))
+            except:
+                flash('Unable to add new boat! Please try again later...', 'error')
                 return redirect('/owner/dashboard')
-            flash(f'New boat details added!', 'info')
+        except Exception as ex:
+            flash(f'{ex}', 'error')
+            flash('Unable to upload image! Please try again later...', 'error')
             return redirect('/owner/dashboard')
-        case _:
-            return render_template('405.html')
+        flash(f'New boat details added!', 'info')
+        return redirect('/owner/dashboard')
+    else:
+        return render_template('405.html')
 
 @app.route('/owner/boats/edit/<_id>', methods=['GET', 'POST'])
 def edit_boat_document(_id):
     if 'email' not in session or 'user_type' not in session or 'user_id' not in session:
         flash('Access restricted! Please login to continue...', 'warning')
         return redirect('/owner/login')
-    match request.method:
-        case 'GET':
+    
+        if request.method=='GET':
             boat_document = boats_collection.find_one({"_id": ObjectId(_id)})
             return render_template('owner/edit.html', str=str, boat=boat_document)
-        case 'POST':
+        elif request.method=='POST':
             try:
                 # Get the details from <form>
                 boat_name = request.form['name']
@@ -275,7 +273,7 @@ def edit_boat_document(_id):
                 flash(f'Boat [{_id[-5:]}] details not updated!', 'error')
                 return redirect('/owner/dashboard')
 
-        case _:
+        else:
             return render_template('405.html')
         
 @app.route('/<user>/details', methods=['GET', 'POST'])
@@ -284,11 +282,10 @@ def edit_account_document(user):
         flash('Access restricted! Please login to continue...', 'warning')
         return redirect(f'/{user}/login')
     
-    match request.method:
-        case 'GET':
+        if request.method=='GET':
             user_creds = users_collection.find_one({'email': session['email']})
             return render_template(f'{user}/details.html', str=str, user=user_creds)
-        case 'POST':
+        elif request.method=='POST':
             f_name = request.form['fname']
             l_name = request.form['lname']
             email = str(session['email']).lower()
@@ -314,7 +311,7 @@ def edit_account_document(user):
                         return redirect(f'/{user}/dashboard')
             flash(f'Unable to update account details! Passwords do not match', 'error')
             return redirect(f'/{user}/dashboard')
-        case _:
+        else:
             return render_template('405.html')
 
 @app.route('/owner/boats/delete/<_id>', methods=['GET', 'POST'])
@@ -334,27 +331,26 @@ def delete_account_document(user):
     if user not in users:
         return render_template('404.html')
     
-    match request.method:
-        case 'GET':
-            return render_template(f'/{user}/delete.html')
-        case 'POST':
-            email = request.form['email'].lower()
-            _ = request.form['email1'].lower()
-            user_creds = users_collection.find_one({'email': email})
-            try:
-                filter_map = {'_id': user_creds["_id"]}
-                users_collection.delete_one(filter_map)
-                if user=="owner":
-                    filter_map = {'owner_id': user_creds["_id"]}
-                    boats_collection.delete_many(filter_map)
-                flash(f'{user_creds["fname"]} {user_creds["lname"]}`s {user} account is deleted.',"success")
-                return redirect('/')
-            except:
-                flash(f'Unable to delete account details! Please try again later...', 'error')
-                return redirect(f'/{user}/delete')
-        case _:
-            return render_template('405.html')
-        
+    if request.method=='GET':
+        return render_template(f'/{user}/delete.html')
+    elif request.method=='POST':
+        email = request.form['email'].lower()
+        _ = request.form['email1'].lower()
+        user_creds = users_collection.find_one({'email': email})
+        try:
+            filter_map = {'_id': user_creds["_id"]}
+            users_collection.delete_one(filter_map)
+            if user=="owner":
+                filter_map = {'owner_id': user_creds["_id"]}
+                boats_collection.delete_many(filter_map)
+            flash(f'{user_creds["fname"]} {user_creds["lname"]}`s {user} account is deleted.',"success")
+            return redirect('/')
+        except:
+            flash(f'Unable to delete account details! Please try again later...', 'error')
+            return redirect(f'/{user}/delete')
+    else:
+        return render_template('405.html')
+    
 @app.route('/about', methods=['GET'])
 def about():
     return render_template('about.html')
@@ -366,52 +362,52 @@ def boat_booking(_id):
         return redirect('/customer/login')
 
     #flash(f'Payment for boat [{_id[-5:]}] is processing...', 'info')
-    match request.method:
-        case 'GET':
-            filter_map = {'_id': ObjectId(_id)}
-            a = boats_collection.find_one(filter_map)
-            b = users_collection.find_one({'_id': ObjectId(session['user_id'])})
-            if a["availability"] == "no":
-                flash(f'No availability! Booking cannot be done.', 'error')
-                return redirect('/customer/dashboard')
-            hr = 1
-            amt = a["price"]
-            return render_template(f'payment.html', _id = _id, amt = int(amt), hr=hr)
-        
-        case 'POST':
-            # Add stripe logic here for making real payments
-            filter_map = {'_id': ObjectId(_id)}
-            a = boats_collection.find_one(filter_map)
-            b = users_collection.find_one({'_id': ObjectId(session['user_id'])})
-            hours = int(request.form.get("number-of-hours"))
-            amt = int(a["price"])
-            trn_id = dt.now().strftime("%d%s")
-            noc = b["fname"]+" "+b["lname"]
-            if float(amt) <= 0 and len(noc)<=2:
-                flash(f'Please enter valid details', 'error')
+    
+    if request.method=='GET':
+        filter_map = {'_id': ObjectId(_id)}
+        a = boats_collection.find_one(filter_map)
+        b = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+        if a["availability"] == "no":
+            flash(f'No availability! Booking cannot be done.', 'error')
+            return redirect('/customer/dashboard')
+        hr = 1
+        amt = a["price"]
+        return render_template(f'payment.html', _id = _id, amt = int(amt), hr=hr)
+    
+    elif request.method=='POST':
+        # Add stripe logic here for making real payments
+        filter_map = {'_id': ObjectId(_id)}
+        a = boats_collection.find_one(filter_map)
+        b = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+        hours = int(request.form.get("number-of-hours"))
+        amt = int(a["price"])
+        trn_id = dt.now().strftime("%d%s")
+        noc = b["fname"]+" "+b["lname"]
+        if float(amt) <= 0 and len(noc)<=2:
+            flash(f'Please enter valid details', 'error')
+            return render_template(f'payment.html', _id = _id, amt = int(amt), hr=1)
+        else:
+            try:
+                token = request.form.get('token')
+                customer = stripe.Customer.create(name=f"{b['fname']} {b['lname']}",email=b['email'],source=token)  # replace with an actual token obtained from Stripe.js or Elements
+                payment_method = "pm_card_visa" #stripe.PaymentMethod.create(type='card', card={'number': "4242424242424242",'exp_month': "04", 'exp_year': "24", 'cvc': "242"})
+                payment_intent = stripe.PaymentIntent.create(customer=customer,amount=amt*100, currency='usd',description= f"Waterside: Boat Rental Services, Reservation Number: {trn_id}", payment_method=payment_method, confirm = True, automatic_payment_methods={'enabled': True}, return_url="http://127.0.0.1:3030/success")
+                update = {"$set": dict(availability="no")}
+                boats_collection.update_one(filter_map, update)
+                _ = payments_collection.insert_one(dict(intent_id = [str(payment_intent["client_secret"]).split("_secret")][0],
+                                                        transaction_id = trn_id,
+                                                        customer_id = b["_id"],
+                                                        owner_id = a["owner_id"],
+                                                        amount_paid = int(amt),
+                                                        boat_id = a["_id"],
+                                                        hours = hours))
+                _ = reservations_collection.insert_one(dict(transaction_id = trn_id, status = "Confirmed"))
+                return render_template('thank_you.html', amt=amt, noc = noc, rsvn = trn_id, email = b['email'])
+            except Exception as e:
+                flash(f'Error: {str(e)}', 'error')
                 return render_template(f'payment.html', _id = _id, amt = int(amt), hr=1)
-            else:
-                try:
-                    token = request.form.get('token')
-                    customer = stripe.Customer.create(name=f"{b['fname']} {b['lname']}",email=b['email'],source=token)  # replace with an actual token obtained from Stripe.js or Elements
-                    payment_method = "pm_card_visa" #stripe.PaymentMethod.create(type='card', card={'number': "4242424242424242",'exp_month': "04", 'exp_year': "24", 'cvc': "242"})
-                    payment_intent = stripe.PaymentIntent.create(customer=customer,amount=amt*100, currency='usd',description= f"Waterside: Boat Rental Services, Reservation Number: {trn_id}", payment_method=payment_method, confirm = True, automatic_payment_methods={'enabled': True}, return_url="http://127.0.0.1:3030/success")
-                    update = {"$set": dict(availability="no")}
-                    boats_collection.update_one(filter_map, update)
-                    _ = payments_collection.insert_one(dict(intent_id = [str(payment_intent["client_secret"]).split("_secret")][0],
-                                                            transaction_id = trn_id,
-                                                            customer_id = b["_id"],
-                                                            owner_id = a["owner_id"],
-                                                            amount_paid = int(amt),
-                                                            boat_id = a["_id"],
-                                                            hours = hours))
-                    _ = reservations_collection.insert_one(dict(transaction_id = trn_id, status = "Confirmed"))
-                    return render_template('thank_you.html', amt=amt, noc = noc, rsvn = trn_id, email = b['email'])
-                except Exception as e:
-                    flash(f'Error: {str(e)}', 'error')
-                    return render_template(f'payment.html', _id = _id, amt = int(amt), hr=1)
-        case _ :
-            return render_template('405.html')
+    else:
+        return render_template('405.html')
         
 @app.route('/success', methods = ['GET'])
 def success():
@@ -421,15 +417,14 @@ def success():
 
 @app.route('/reservations', methods=['GET', 'POST'])
 def reservations():
-    match request.method:
-        case 'GET':
+
+        if request.method=='GET':
             try:
                 transaction_id = request.form.get("conf")
             except:
                 transaction_id = ""
             return render_template('reservations.html', conf = transaction_id)
-        case 'POST':
-            
+        elif request.method=='POST':
             try:
                 transaction_id = request.form.get("conf")
                 payment_document = payments_collection.find_one({'transaction_id': transaction_id})
@@ -458,7 +453,7 @@ def reservations():
             except Exception as e:
                 flash(f'Error: {str(e)}', 'error')
                 return render_template('reservations.html', conf = transaction_id)
-        case _ :
+        else:
             return render_template('405.html')
 
 @app.route('/reservations/cancel/<transaction_id>', methods=['GET', 'POST'])
