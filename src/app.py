@@ -13,7 +13,6 @@ import stripe
 from ed import whatcrypt
 from em import _email
 from datetime import datetime as dt
-from bs4 import BeautifulSoup as bs
 
 load_dotenv()
 
