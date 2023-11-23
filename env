@@ -1,5 +1,0 @@
-CLIENT_ID="be2b5f2d6448e43"
-FLASK_APP_SECRET="6a8f20c7cb0c21c1025f04884b9dec3e7e66dde8"
-UPLOAD_FOLDER = "./src/static/boats"
-MONGODB_URI = "mongodb+srv://useraakash:Pass@123@cluster0.8s4f9dx.mongodb.net/?retryWrites=true&w=majority"
-SECRET_DE2EN_KEY = 'Team19-id7304_WaterSide-Boat_Rental_Service='
