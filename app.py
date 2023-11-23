@@ -493,3 +493,6 @@ def logout():
     session.pop('user_type')
     session.pop('user_id')
     return redirect(url_for('index'))
+  
+if __name__ == "__main__":
+    app.run()
