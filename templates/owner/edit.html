@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Boat</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100 h-screen font-sans">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="fixed top-10 right-10 ml-3 mt-3 border-l-4 p-4 alert z-50 
+                    {% if category == 'info' %} bg-blue-200 border-blue-500 text-blue-700 
+                    {% elif category == 'error' %} bg-red-200 border-red-500 text-red-700 
+                    {% elif category == 'warning' %} bg-yellow-200 border-yellow-500 text-yellow-700 
+                    {% elif category == 'success' %} bg-green-200 border-green-500 text-green-700 
+                    {% endif %}" role="alert">
+                    {{ message }}
+                    <div type="button" class="close absolute right-1 top-1 cursor-pointer" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true" class="text-gray-700 cursor-pointer" onclick="this.parentElement.parentElement.style.display='none';">&times;</span>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <div class="container mx-auto mt-20">
+        <h1 class="text-4xl font-bold mb-10 text-center">Edit Boat Details</h1>
+        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 flex flex-col">
+            <form method="POST" action="/owner/boats/edit/{{ str(boat['_id']) }}">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="boat-image">Boat Image</label>
+                    <!-- input class="appearance-none w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="boat-image" type="file" accept="image/png, image/jpeg, image/jpg" placeholder="Upload boat image" value="{{ url_for('static', filename=boat['image_url']) }}" -->
+                    <img src="{{ url_for('static', filename=boat['image_url']) }}" alt="Boat Image" class="w-full h-48 object-cover rounded">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="boat-name">Boat Name</label>
+                    <input class="appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" name="name" id="boat-name" type="text" placeholder="Boat Name" value="{{ boat['name'] }}" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="boat-type">Type</label>
+                    <input class="appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" name="type" id="boat-type" type="text" placeholder="Boat Type" value="{{ boat['type'] }}" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="boat-location">Location</label>
+                    <input class="appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" name="location" id="boat-location" type="text" placeholder="Boat Location" value="{{ boat['location'] }}" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="boat-price">Price</label>
+                    <input class="appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" name="price" id="boat-price" type="text" placeholder="Boat Price" value="{{ boat['price'] }}" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Available</label>
+                    <div class="mt-2">
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio" name="availability" value="yes" checked>
+                            <span class="ml-2">Yes</span>
+                        </label>
+                        <label class="inline-flex items-center ml-6">
+                            <input type="radio" class="form-radio" name="availability" value="no">
+                            <span class="ml-2">No</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>
+

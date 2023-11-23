@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+
+<body class="bg-gray-100 h-screen font-sans">
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="fixed top-10 right-10 ml-3 mt-3 border-l-4 p-4 alert z-50 
+                    {% if category == 'info' %} bg-blue-200 border-blue-500 text-blue-700 
+                    {% elif category == 'error' %} bg-red-200 border-red-500 text-red-700 
+                    {% elif category == 'warning' %} bg-yellow-200 border-yellow-500 text-yellow-700 
+                    {% elif category == 'success' %} bg-green-200 border-green-500 text-green-700 
+                    {% endif %}" role="alert">
+                    {{ message }}
+                    <div type="button" class="close absolute right-1 top-1 cursor-pointer" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true" class="text-gray-700 cursor-pointer" onclick="this.parentElement.parentElement.style.display='none';">&times;</span>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="container mx-auto mt-20">
+        <h1 class="text-4xl font-bold mb-10 text-center">Payment</h1>
+        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 flex flex-col">
+            <form action="/customer/boats/payment/{{ _id }}" id ="payment-form" method="POST">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="name-on-card">Name on Card</label>
+                <input class="appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="name-on-card" name="name-on-card" type="text" placeholder="John Doe" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="card-element">Credit or Debit Card</label>
+                <div id="card-element" name = "card-element" class="appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required></div>
+                <div id="card-errors" role="alert" class="mt-2 text-red-600"></div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="number-of-hours">Number of Hours</label>
+                <input class="appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline required" id="number-of-hours" name="number-of-hours" type="number" oninput="displayAmount()" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="boatamount">Boat Amount</label>
+                <input class="appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline required" id="boatamount" name="boatamount" type="number" value="{{ amt }}" disabled>
+                </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="amount">Total Amount</label>
+                <span id = "amount" class = "amount" name ="amount"></span><span style = "color: red;"> {{ res }} </span>
+            </div>
+            
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" id="submit-payment" type = "submit" ><div class="spinner hidden" id="spinner"></div><span id="button-text">Pay now</span></button>
+            <div id="payment-message" class="hidden"></div>
+        </form>
+        </div>
+    </div>
+
+    <!-- Stripe.js payment integration -->
+
+    <script>
+        window.history.forward = function() {
+            alert("Forward button is disabled.");
+        };
+        function displayAmount() {
+            var hours = document.getElementById("number-of-hours");
+            var boatamount = document.getElementById("boatamount");
+            var n1 = parseInt(hours.value);
+            var n2 = parseInt(boatamount.value);
+            var total = n2*n1;
+            var amount = document.getElementById("amount");
+            if (isNaN(total)) {
+                amount.textContent = "$" + boatamount.value+".00";
+            }
+            else{
+                amount.textContent = "$" + total+".00";
+            }
+        }
+
+        const stripe = Stripe("pk_test_51O9FyrErLa42fbUSuDLnAb6AtEn0kcM08Xb9kOofaOcHoOMLRgFnxacXA4H09NWtn9dHvoi7OCiJQg36fS51VzvL00tQBIdj5V");
+
+        var elements = stripe.elements();
+        var style = {
+            base: {
+                color: '#32325d',
+                fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                fontSmoothing: 'antialiased',
+                fontSize: '16px',
+                '::placeholder': {
+                color: '#aab7c4'
+                }
+            },
+            invalid: {
+                color: '#fa755a',
+                iconColor: '#fa755a'
+            }
+        };
+        initialize();
+        checkStatus();
+        var card = elements.create('card', { style: style });
+        card.mount('#card-element');
+        card.on('change', function (event) {
+            var displayError = document.getElementById('card-errors');
+            if (event.error) {
+                displayError.textContent = event.error.message;
+            }
+            else {
+                displayError.textContent = '';
+            }
+        });
+        document.querySelector("#payment-form").addEventListener("submit-payment", handleSubmit);
+
+        async function initialize() {
+            const response = await fetch("/create-payment-intent", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ items }),
+            });
+            const { clientSecret } = await response.json();
+
+            const appearance = {
+                theme: 'stripe',
+            };
+            elements = stripe.elements({ appearance, clientSecret });
+
+            const paymentElementOptions = {
+                layout: "tabs",
+            };
+
+            const paymentElement = elements.create("payment", paymentElementOptions);
+            paymentElement.mount("#card-element");   
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            setLoading(true);
+            const { error } = await stripe.confirmCardPayment(
+            {elements,
+                confirmParams: {
+                return_url: "http://127.0.0.1:3030/success",
+                },
+            });
+            
+            stripe.createToken(card).then(function (result) {
+            if (result.error) {
+                var token = document.getElementById('card-errors');
+                errorElement.textContent = result.error.message;
+            } else {
+                var token = result.token.id
+            }
+            var Fdata = new FormData();
+            Fdata.append('token', token);
+
+            var x = new XMLHttpRequest();
+            x.open("POST", "/customer/boats/payment/{{ _id }}", true);
+
+            x.setRequestHeader('Content-Type', "application/x-www-form-urlencoded")
+            var encdata = new URLSearchParams(Fdata).toString();
+            x.send(encdata);
+
+        });
+
+            if (error.type === "card_error" || error.type === "validation_error") {
+                showMessage(error.message);
+            } else {
+                showMessage("An unexpected error occurred.");
+            }
+
+            setLoading(false);
+        }
+
+        async function checkStatus() {
+            const clientSecret = new URLSearchParams(window.location.search).get(
+                "payment_intent_client_secret"
+            );
+
+            if (!clientSecret) {
+                return;
+            }
+
+            const { paymentIntent } = await stripe.retrievePaymentIntent(clientSecret);
+
+            switch (paymentIntent.status) {
+                case "succeeded":
+                showMessage("Payment succeeded!");
+                break;
+                case "processing":
+                showMessage("Your payment is processing.");
+                break;
+                case "requires_payment_method":
+                showMessage("Your payment was not successful, please try again.");
+                break;
+                default:
+                showMessage("Something went wrong.");
+                break;
+            }
+        }
+
+        function showMessage(messageText) {
+            const messageContainer = document.querySelector("#payment-message");
+
+            messageContainer.classList.remove("hidden");
+            messageContainer.textContent = messageText;
+
+            setTimeout(function () {
+                messageContainer.classList.add("hidden");
+                messageContainer.textContent = "";
+            }, 4000);
+        }
+
+        // Example: https://stripe.com/docs/payments/integration-builder
+        function setLoading(isLoading) {
+            if (isLoading) {
+                // Disable the button and show a spinner
+                document.querySelector("#submit-payment").disabled = true;
+                document.querySelector("#spinner").classList.remove("hidden");
+                document.querySelector("#button-text").classList.add("hidden");
+            } else {
+                document.querySelector("#submit-payment").disabled = false;
+                document.querySelector("#spinner").classList.add("hidden");
+                document.querySelector("#button-text").classList.remove("hidden");
+            }
+        }
+</script>
+</body>
+</html>
