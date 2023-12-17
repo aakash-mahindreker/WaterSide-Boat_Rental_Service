@@ -1,4 +1,4 @@
-# WaterSide
+# WaterSide - Boat Rental Service
 ## Software Engineering 2 - Semester Project
 ## WaterSide: Boat Rental Service 
 ## Aakash Mahindreker - 1002027304
